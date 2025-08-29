@@ -57,6 +57,7 @@ jobs:
     - name: Build for Android 
       working-directory: phira
       run: |
+        rustup target install i686-linux-android
         cargo ndk -t x86 build --release
 
     - name: Upload x86 artifact
