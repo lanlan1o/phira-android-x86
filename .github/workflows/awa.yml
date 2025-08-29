@@ -1,4 +1,4 @@
-name: Build Android Phira (arm64-v8a + x86)
+name: Build Android Phira x86
 
 on:
   workflow_dispatch:
@@ -48,24 +48,18 @@ jobs:
       uses: actions-rs/toolchain@v1.0.6
       with:
         toolchain: stable
-        target: aarch64-linux-android,i686-linux-android
+        target: i686-linux-android
         override: true
 
     - name: Install cargo-ndk
       run: cargo install cargo-ndk
 
-    - name: Build for Android (arm64-v8a and x86)
+    - name: Build for Android 
       working-directory: phira
       run: |
-        cargo ndk -t arm64-v8a -t x86 -p 35 build --release
+        cargo ndk -t x86 -p 35 build --release
 
-    - name: Upload arm64-v8a artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: libphira-arm64-v8a.so
-        path: phira/target/aarch64-linux-android/release/libphira.so
-
-    - name: Upload x87 artifact
+    - name: Upload x86 artifact
       uses: actions/upload-artifact@v4
       with:
         name: libphira-x86.so
