@@ -1,0 +1,72 @@
+name: Build Android Phira (arm64-v8a + x86)
+
+on:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  ANDROID_HOME: ${{github.workspace}}/android-sdk
+  ANDROID_NDK_HOME: ${{github.workspace}}/android-ndk-r27c
+  ANDROID_NDK_ROOT: ${{github.workspace}}/android-ndk-r27c
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4.2.2
+
+    - name: Remove Linux-only attribute
+      run: |
+        # Remove first line (e.g., #![cfg(target_os = "linux")]) to allow Android build
+        sed -i '1d' prpr/src/lib.rs
+
+    - name: Download prpr-avc static lib
+      run: |
+        wget -O prpr-avc.zip "https://teamflos.github.io/phira-docs/phira_build_guide/prpr-avc.zip"
+        unzip -q prpr-avc.zip -d ./deps/
+
+    - name: Install Android SDK Tools
+      run: |
+        mkdir -p $ANDROID_HOME/cmdline-tools/latest
+        wget -O sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+        unzip -q sdk-tools.zip -d temp/
+        mv temp/cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/ || true
+        rm -rf temp sdk-tools.zip
+
+        # Accept licenses and install components
+        echo y | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "build-tools;33.0.2" "platforms;android-35"
+
+    - name: Install Android NDK
+      run: |
+        test -f android-ndk-r27c-linux.zip || \
+          wget -O android-ndk-r27c-linux.zip https://googledownloads.cn/android/repository/android-ndk-r27c-linux.zip
+        unzip -q android-ndk-r27c-linux.zip -d ${{github.workspace}}
+
+    - name: Install Rust Toolchain with targets
+      uses: actions-rs/toolchain@v1.0.6
+      with:
+        toolchain: stable
+        target: aarch64-linux-android,i686-linux-android
+        override: true
+
+    - name: Install cargo-ndk
+      run: cargo install cargo-ndk
+
+    - name: Build for Android (arm64-v8a and x86)
+      working-directory: phira
+      run: |
+        cargo ndk -t arm64-v8a -t x86 -p 35 build --release
+
+    - name: Upload arm64-v8a artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: libphira-arm64-v8a.so
+        path: phira/target/aarch64-linux-android/release/libphira.so
+
+    - name: Upload x87 artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: libphira-x86.so
+        path: phira/target/i686-linux-android/release/libphira.so
