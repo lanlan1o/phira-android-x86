@@ -57,7 +57,7 @@ jobs:
     - name: Build for Android 
       working-directory: phira
       run: |
-        cargo ndk -t x86 -p 35 build --release
+        cargo ndk -t x86 -p 27 build --release
 
     - name: Upload x86 artifact
       uses: actions/upload-artifact@v4
